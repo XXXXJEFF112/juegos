@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construye tu Red de Computadoras - Juego Educativo</title>
+    <style>
+        /* Variables de colores y estilos globales */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #2980b9;
+            --background-color: #ecf0f1;
+            --text-color: #2c3e50;
+            --correct-color: #27ae60;
+            --incorrect-color: #e74c3c;
+            --neutral-color: #bdc3c7;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --network-area-color: #f8f9fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+        }
+
+        /* Estilos para el panel de información */
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .score, .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .score span, .timer span {
+            color: var(--secondary-color);
+        }
+
+        /* Estilos para el área de juego */
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .components-pool, .network-area {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            min-height: 500px;
+        }
+
+        .components-pool h2, .network-area h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        /* Estilos para los componentes */
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background-color: var(--neutral-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .component.dragging {
+            opacity: 0.7;
+        }
+
+        .component-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .component-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        /* Estilos para el área de red */
+        .network-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background-color: var(--network-area-color);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px dashed var(--neutral-color);
+        }
+
+        .drop-zone {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border: 2px dashed var(--neutral-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .drop-zone.highlight {
+            border-color: var(--secondary-color);
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .drop-zone.correct {
+            border-color: var(--correct-color);
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+
+        .drop-zone.incorrect {
+            border-color: var(--incorrect-color);
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        .zone-label {
+            color: var(--text-color);
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+        }
+
+        /* Estilos para las conexiones */
+        .connection {
+            position: absolute;
+            background-color: #7f8c8d;
+            transform-origin: 0 0;
+            z-index: -1;
+        }
+
+        .connection.correct {
+            background-color: var(--correct-color);
+        }
+
+        .connection.incorrect {
+            background-color: var(--incorrect-color);
+        }
+
+        /* Estilos para el panel de retroalimentación */
+        .feedback-panel {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feedback-message {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .correct-feedback {
+            color: var(--correct-color);
+        }
+
+        .incorrect-feedback {
+            color: var(--incorrect-color);
+        }
+
+        /* Estilos para los botones */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--secondary-color);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button#reset-btn {
+            background-color: var(--neutral-color);
+        }
+
+        button#reset-btn:hover {
+            background-color: #95a5a6;
+        }
+
+        /* Estilos para el modal de resultados */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal h2 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .modal p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .final-score {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin: 15px 0;
+        }
+
+        .performance-message {
+            font-size: 1.3rem;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .excellent {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--correct-color);
+        }
+
+        .good {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: var(--secondary-color);
+        }
+
+        .average {
+            background-color: rgba(241, 196, 15, 0.2);
+            color: #f39c12;
+        }
+
+        .needs-improvement {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--incorrect-color);
+        }
+
+        /* Estilos para el modal de información de componentes */
+        .component-info-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .component-info-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .component-info-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .component-info-icon {
+            font-size: 3rem;
+            margin-right: 15px;
+        }
+
+        .component-info-title {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .component-info-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Construye tu Red de Computadoras</h1>
+            <p class="subtitle">Aprende los componentes esenciales de una red y cómo se conectan entre sí</p>
+        </header>
+
+        <div class="info-panel">
+            <div class="score">Puntuación: <span id="score-value">0</span></div>
+            <div class="timer">Tiempo: <span id="timer-value">00:00</span></div>
+        </div>
+
+        <div class="feedback-panel">
+            <div id="feedback-message" class="feedback-message">Arrastra los componentes a su ubicación correcta en el diagrama de red</div>
+        </div>
+
+        <div class="game-area">
+            <div class="components-pool">
+                <h2>Componentes de Red</h2>
+                <div class="components-grid" id="components-grid">
+                    <!-- Los componentes se generarán dinámicamente con JavaScript -->
+                </div>
+            </div>
+
+            <div class="network-area">
+                <h2>Diagrama de Red</h2>
+                <div class="network-container" id="network-container">
+                    <!-- Las zonas de colocación se generarán dinámicamente con JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="check-btn">Verificar Conexiones</button>
+            <button id="reset-btn">Reiniciar Juego</button>
+        </div>
+    </div>
+
+    <div id="results-modal" class="modal">
+        <div class="modal-content">
+            <h2>¡Red Completada!</h2>
+            <p>Has terminado de construir tu red de computadoras</p>
+            <div class="final-score">Puntuación: <span id="final-score">0</span></div>
+            <div id="performance-message" class="performance-message"></div>
+            <button id="play-again-btn">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <div id="component-info-modal" class="component-info-modal">
+        <div class="component-info-content">
+            <div class="component-info-header">
+                <div id="component-info-icon" class="component-info-icon">💻</div>
+                <h3 id="component-info-title" class="component-info-title">Componente</h3>
+            </div>
+            <p id="component-info-description" class="component-info-description">Descripción del componente.</p>
+            <button id="close-info-btn">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        // Datos de los componentes de red
+        const networkComponents = [
+            {
+                id: 'router',
+                name: 'Router',
+                description: 'Dispositivo que conecta múltiples redes y dirige el tráfico de datos entre ellas. Es el "cerebro" de una red, encargado de encontrar la mejor ruta para enviar información.',
+                correctZone: 'router-zone',
+                icon: '🌐',
+                connections: ['switch-zone', 'firewall-zone']
+            },
+            {
+                id: 'switch',
+                name: 'Switch',
+                description: 'Dispositivo que conecta múltiples dispositivos en una red local (LAN) y gestiona el tráfico entre ellos. Es más inteligente que un hub, ya que envía datos solo al dispositivo destino.',
+                correctZone: 'switch-zone',
+                icon: '🔀',
+                connections: ['router-zone', 'server-zone', 'pc1-zone', 'pc2-zone', 'ap-zone']
+            },
+            {
+                id: 'server',
+                name: 'Servidor',
+                description: 'Computadora o sistema que proporciona servicios, recursos o datos a otros dispositivos en la red. Puede ser un servidor de archivos, web, correo, etc.',
+                correctZone: 'server-zone',
+                icon: '🖥️',
+                connections: ['switch-zone']
+            },
+            {
+                id: 'pc1',
+                name: 'Estación de Trabajo 1',
+                description: 'Computadora personal que utiliza los recursos y servicios proporcionados por la red. Los usuarios finales trabajan en estas estaciones.',
+                correctZone: 'pc1-zone',
+                icon: '💻',
+                connections: ['switch-zone']
+            },
+            {
+                id: 'pc2',
+                name: 'Estación de Trabajo 2',
+                description: 'Otra computadora personal en la red. En una red empresarial típica, hay múltiples estaciones de trabajo conectadas.',
+                correctZone: 'pc2-zone',
+                icon: '💻',
+                connections: ['switch-zone']
+            },
+            {
+                id: 'firewall',
+                name: 'Firewall',
+                description: 'Sistema de seguridad que controla el tráfico entrante y saliente de la red, bloqueando accesos no autorizados mientras permite comunicaciones legítimas.',
+                correctZone: 'firewall-zone',
+                icon: '🛡️',
+                connections: ['router-zone', 'internet-zone']
+            },
+            {
+                id: 'ap',
+                name: 'Punto de Acceso Wi-Fi',
+                description: 'Dispositivo que permite a dispositivos inalámbricos conectarse a una red cableada. Crea una red de área local inalámbrica (WLAN).',
+                correctZone: 'ap-zone',
+                icon: '📡',
+                connections: ['switch-zone']
+            }
+        ];
+
+        // Zonas de colocación en el diagrama de red
+        const dropZones = [
+            { id: 'router-zone', label: 'Router', top: '30%', left: '40%' },
+            { id: 'switch-zone', label: 'Switch', top: '50%', left: '40%' },
+            { id: 'server-zone', label: 'Servidor', top: '30%', left: '20%' },
+            { id: 'pc1-zone', label: 'PC 1', top: '50%', left: '20%' },
+            { id: 'pc2-zone', label: 'PC 2', top: '70%', left: '20%' },
+            { id: 'firewall-zone', label: 'Firewall', top: '30%', left: '60%' },
+            { id: 'ap-zone', label: 'Punto de Acceso Wi-Fi', top: '70%', left: '40%' },
+            { id: 'internet-zone', label: 'Internet', top: '30%', left: '80%' }
+        ];
+
+        // Conexiones correctas entre componentes
+        const correctConnections = [
+            { from: 'router-zone', to: 'switch-zone' },
+            { from: 'router-zone', to: 'firewall-zone' },
+            { from: 'switch-zone', to: 'server-zone' },
+            { from: 'switch-zone', to: 'pc1-zone' },
+            { from: 'switch-zone', to: 'pc2-zone' },
+            { from: 'switch-zone', to: 'ap-zone' },
+            { from: 'firewall-zone', to: 'internet-zone' }
+        ];
+
+        // Variables de estado del juego
+        let score = 0;
+        let timeElapsed = 0;
+        let timerInterval;
+        let placedComponents = 0;
+        const totalComponents = networkComponents.length;
+
+        // Elementos DOM
+        const componentsGrid = document.getElementById('components-grid');
+        const networkContainer = document.getElementById('network-container');
+        const scoreValue = document.getElementById('score-value');
+        const timerValue = document.getElementById('timer-value');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const checkBtn = document.getElementById('check-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const resultsModal = document.getElementById('results-modal');
+        const finalScore = document.getElementById('final-score');
+        const performanceMessage = document.getElementById('performance-message');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const componentInfoModal = document.getElementById('component-info-modal');
+        const componentInfoIcon = document.getElementById('component-info-icon');
+        const componentInfoTitle = document.getElementById('component-info-title');
+        const componentInfoDescription = document.getElementById('component-info-description');
+        const closeInfoBtn = document.getElementById('close-info-btn');
+
+        // Inicializar el juego
+        function initGame() {
+            // Reiniciar variables de estado
+            score = 0;
+            timeElapsed = 0;
+            placedComponents = 0;
+            scoreValue.textContent = '0';
+            timerValue.textContent = '00:00';
+            feedbackMessage.textContent = 'Arrastra los componentes a su ubicación correcta en el diagrama de red';
+            feedbackMessage.className = 'feedback-message';
+            
+            // Limpiar áreas de juego
+            componentsGrid.innerHTML = '';
+            networkContainer.innerHTML = '';
+            
+            // Crear componentes arrastrables
+            createDraggableComponents();
+            
+            // Crear zonas de colocación
+            createDropZones();
+            
+            // Iniciar temporizador
+            startTimer();
+            
+            // Ocultar modales
+            resultsModal.style.display = 'none';
+            componentInfoModal.style.display = 'none';
+        }
+
+        // Crear componentes arrastrables
+        function createDraggableComponents() {
+            networkComponents.forEach(component => {
+                const componentElement = document.createElement('div');
+                componentElement.className = 'component';
+                componentElement.id = component.id;
+                componentElement.draggable = true;
+                componentElement.innerHTML = `
+                    <div class="component-icon">${component.icon}</div>
+                    <div class="component-name">${component.name}</div>
+                `;
+                
+                // Agregar event listeners para drag and drop
+                componentElement.addEventListener('dragstart', handleDragStart);
+                componentElement.addEventListener('dragend', handleDragEnd);
+                
+                // Agregar event listener para mostrar información
+                componentElement.addEventListener('click', () => showComponentInfo(component));
+                
+                componentsGrid.appendChild(componentElement);
+            });
+        }
+
+        // Crear zonas de colocación
+        function createDropZones() {
+            dropZones.forEach(zone => {
+                const zoneElement = document.createElement('div');
+                zoneElement.className = 'drop-zone';
+                zoneElement.id = zone.id;
+                zoneElement.style.top = zone.top;
+                zoneElement.style.left = zone.left;
+                zoneElement.innerHTML = `<div class="zone-label">${zone.label}</div>`;
+                
+                // Agregar event listeners para drag and drop
+                zoneElement.addEventListener('dragover', handleDragOver);
+                zoneElement.addEventListener('dragenter', handleDragEnter);
+                zoneElement.addEventListener('dragleave', handleDragLeave);
+                zoneElement.addEventListener('drop', handleDrop);
+                
+                networkContainer.appendChild(zoneElement);
+            });
+        }
+
+        // Mostrar información del componente
+        function showComponentInfo(component) {
+            componentInfoIcon.textContent = component.icon;
+            componentInfoTitle.textContent = component.name;
+            componentInfoDescription.textContent = component.description;
+            componentInfoModal.style.display = 'flex';
+            componentInfoModal.classList.add('fade-in');
+        }
+
+        // Manejar el inicio del arrastre
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.id);
+            e.target.classList.add('dragging');
+            setTimeout(() => {
+                e.target.style.display = 'none';
+            }, 0);
+        }
+
+        // Manejar el final del arrastre
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            e.target.style.display = 'flex';
+        }
+
+        // Permitir soltar en la zona
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        // Resaltar la zona cuando un elemento entra
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.target.classList.add('highlight');
+        }
+
+        // Quitar el resaltado cuando un elemento sale
+        function handleDragLeave(e) {
+            e.target.classList.remove('highlight');
+        }
+
+        // Manejar cuando se suelta un elemento
+        function handleDrop(e) {
+            e.preventDefault();
+            e.target.classList.remove('highlight');
+            
+            const componentId = e.dataTransfer.getData('text/plain');
+            const component = document.getElementById(componentId);
+            const dropZone = e.target.closest('.drop-zone');
+            
+            // Verificar si la zona ya tiene un componente
+            if (dropZone.querySelector('.component')) {
+                showFeedback('❌ Esta zona ya tiene un componente', 'incorrect');
+                return;
+            }
+            
+            // Colocar el componente en la zona
+            component.style.position = 'absolute';
+            component.style.top = '50%';
+            component.style.left = '50%';
+            component.style.transform = 'translate(-50%, -50%)';
+            component.style.margin = '0';
+            component.style.width = '80%';
+            component.style.height = '80%';
+            
+            dropZone.appendChild(component);
+            component.style.display = 'flex';
+            
+            // Incrementar contador de componentes colocados
+            placedComponents++;
+            
+            // Verificar si todos los componentes han sido colocados
+            if (placedComponents === totalComponents) {
+                checkBtn.disabled = false;
+            }
+        }
+
+        // Mostrar retroalimentación
+        function showFeedback(message, type) {
+            feedbackMessage.textContent = message;
+            feedbackMessage.className = `feedback-message ${type}-feedback`;
+            feedbackMessage.classList.add('fade-in');
+            
+            setTimeout(() => {
+                feedbackMessage.classList.remove('fade-in');
+            }, 1000);
+        }
+
+        // Dibujar conexiones entre componentes
+        function drawConnections() {
+            // Limpiar conexiones existentes
+            document.querySelectorAll('.connection').forEach(conn => conn.remove());
+            
+            // Obtener todas las zonas con componentes
+            const populatedZones = document.querySelectorAll('.drop-zone:has(.component)');
+            
+            // Dibujar conexiones entre zonas pobladas
+            populatedZones.forEach(zone => {
+                const zoneId = zone.id;
+                const component = networkComponents.find(c => c.correctZone === zoneId);
+                
+                if (component && component.connections) {
+                    component.connections.forEach(connectedZoneId => {
+                        const connectedZone = document.getElementById(connectedZoneId);
+                        if (connectedZone && connectedZone.querySelector('.component')) {
+                            drawConnection(zone, connectedZone, false);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Dibujar una conexión entre dos zonas
+        function drawConnection(fromZone, toZone, isCorrect) {
+            const fromRect = fromZone.getBoundingClientRect();
+            const toRect = toZone.getBoundingClientRect();
+            const containerRect = networkContainer.getBoundingClientRect();
+            
+            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
+            const toX = toRect.left + toRect.width / 2 - containerRect.left;
+            const toY = toRect.top + toRect.height / 2 - containerRect.top;
+            
+            // Calcular distancia y ángulo entre puntos
+            const distance = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+            const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+            
+            // Crear elemento de conexión
+            const connection = document.createElement('div');
+            connection.className = 'connection';
+            connection.style.width = `${distance}px`;
+            connection.style.height = '3px';
+            connection.style.left = `${fromX}px`;
+            connection.style.top = `${fromY}px`;
+            connection.style.transform = `rotate(${angle}deg)`;
+            
+            if (isCorrect) {
+                connection.classList.add('correct');
+            } else {
+                connection.classList.add('incorrect');
+            }
+            
+            networkContainer.appendChild(connection);
+        }
+
+        // Verificar conexiones
+        function checkConnections() {
+            let correctConnectionsCount = 0;
+            let totalConnectionsChecked = 0;
+            
+            // Verificar cada conexión correcta
+            correctConnections.forEach(conn => {
+                const fromZone = document.getElementById(conn.from);
+                const toZone = document.getElementById(conn.to);
+                
+                // Verificar si ambas zonas tienen componentes
+                if (fromZone && fromZone.querySelector('.component') && 
+                    toZone && toZone.querySelector('.component')) {
+                    
+                    totalConnectionsChecked++;
+                    
+                    // Verificar si la conexión es correcta
+                    const fromComponent = networkComponents.find(c => c.correctZone === conn.from);
+                    if (fromComponent && fromComponent.connections.includes(conn.to)) {
+                        correctConnectionsCount++;
+                        drawConnection(fromZone, toZone, true);
+                        showFeedback('✅ Conexión correcta', 'correct');
+                    } else {
+                        drawConnection(fromZone, toZone, false);
+                        showFeedback('❌ Conexión incorrecta', 'incorrect');
+                    }
+                }
+            });
+            
+            // Calcular puntuación
+            if (totalConnectionsChecked > 0) {
+                const connectionScore = Math.round((correctConnectionsCount / totalConnectionsChecked) * 100);
+                score = connectionScore;
+                scoreValue.textContent = score;
+            }
+            
+            // Mostrar resultados finales si todos los componentes están colocados
+            if (placedComponents === totalComponents) {
+                setTimeout(showResults, 1500);
+            }
+        }
+
+        // Mostrar resultados finales
+        function showResults() {
+            // Detener temporizador
+            clearInterval(timerInterval);
+            
+            // Actualizar puntuación final
+            finalScore.textContent = score;
+            
+            // Determinar mensaje de desempeño
+            let performanceClass, performanceText;
+            if (score >= 90) {
+                performanceClass = 'excellent';
+                performanceText = '¡Eres un experto en redes! Dominas completamente los conceptos de networking.';
+            } else if (score >= 70) {
+                performanceClass = 'good';
+                performanceText = '¡Buen trabajo! Tienes un sólido conocimiento de redes de computadoras.';
+            } else if (score >= 50) {
+                performanceClass = 'average';
+                performanceText = 'No está mal, pero puedes mejorar. Sigue practicando los conceptos de redes.';
+            } else {
+                performanceClass = 'needs-improvement';
+                performanceText = 'Necesitas estudiar más sobre redes de computadoras. ¡Sigue intentándolo!';
+            }
+            
+            performanceMessage.textContent = performanceText;
+            performanceMessage.className = `performance-message ${performanceClass}`;
+            
+            // Mostrar modal
+            resultsModal.style.display = 'flex';
+            resultsModal.classList.add('fade-in');
+        }
+
+        // Iniciar temporizador
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeElapsed = 0;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        // Actualizar display del temporizador
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeElapsed / 60);
+            const seconds = timeElapsed % 60;
+            timerValue.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Event Listeners para botones
+        checkBtn.addEventListener('click', checkConnections);
+        resetBtn.addEventListener('click', initGame);
+        playAgainBtn.addEventListener('click', initGame);
+        closeInfoBtn.addEventListener('click', () => {
+            componentInfoModal.style.display = 'none';
+        });
+
+        // Inicializar el juego cuando se carga la página
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
